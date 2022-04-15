@@ -1,0 +1,583 @@
+
+
+
+
+SIG on EIP                                                    S. Salsano
+Internet-Draft                          Univ. of Rome Tor Vergata / CNIT
+Intended status: Informational                              H. ElBakoury
+Expires: 17 October 2022                                      Consultant
+                                                           15 April 2022
+
+
+           Extensible In-band Processing Headers Definitions
+                  draft-eip-headers-definitions-latest
+
+Abstract
+
+   This document discussed the EIP header format.
+
+   Caveat: this document is at an early brainstorming stage, it is
+   distributed only to stimulate discussion.
+
+About This Document
+
+   This note is to be removed before publishing as an RFC.
+
+   The latest revision of this draft can be found at https://eip-
+   home.github.io/eip-headers/draft-eip-headers-definitions.html.
+   Status information for this document may be found at
+   https://datatracker.ietf.org/doc/draft-eip-headers-definitions/.
+
+   Discussion of this document takes place on the EIP SIG mailing list
+   (mailto:eip@postino.cnit.it), which is archived at
+   http://postino.cnit.it/cgi-bin/mailman/private/eip/.
+
+   Source for this draft and an issue tracker can be found at
+   https://github.com/eip-home/eip-headers.
+
+Status of This Memo
+
+   This Internet-Draft is submitted in full conformance with the
+   provisions of BCP 78 and BCP 79.
+
+   Internet-Drafts are working documents of the Internet Engineering
+   Task Force (IETF).  Note that other groups may also distribute
+   working documents as Internet-Drafts.  The list of current Internet-
+   Drafts is at https://datatracker.ietf.org/drafts/current/.
+
+   Internet-Drafts are draft documents valid for a maximum of six months
+   and may be updated, replaced, or obsoleted by other documents at any
+   time.  It is inappropriate to use Internet-Drafts as reference
+   material or to cite them other than as "work in progress."
+
+   This Internet-Draft will expire on 17 October 2022.
+
+Copyright Notice
+
+   Copyright (c) 2022 IETF Trust and the persons identified as the
+   document authors.  All rights reserved.
+
+   This document is subject to BCP 78 and the IETF Trust's Legal
+   Provisions Relating to IETF Documents (https://trustee.ietf.org/
+   license-info) in effect on the date of publication of this document.
+   Please review these documents carefully, as they describe your rights
+   and restrictions with respect to this document.  Code Components
+   extracted from this document must include Revised BSD License text as
+   described in Section 4.e of the Trust Legal Provisions and are
+   provided without warranty as described in the Revised BSD License.
+
+Table of Contents
+
+   1.  Introduction
+   2.  Benefits of a common EIP header for multiple use cases.
+   3.  Definition of EIP Option for HBH EH
+   4.  Definition of EIP TLV for SRH
+   5.  Generic format for EIP Information Elements
+     5.1.  Proposed approach #1 for EIP LTVs.
+     5.2.  Proposed approach #2 for EIP LTVs.
+     5.3.  Decision on the approach for EIP LTVs
+   6.  Definition of EIP Information Elements (a.k.a.  EIP LTVs)
+     6.1.  HMAC LTV
+     6.2.  Timestamps LTV:
+     6.3.  Processing Accelerator LTV
+     6.4.  Compact Path Tracing (CPT) LTV
+       6.4.1.  CPT Authenticated mode
+   7.  Conventions and Definitions
+   8.  Security Considerations
+   9.  IANA Considerations
+   10. Normative References
+   Acknowledgments
+   Authors' Addresses
+
+1.  Introduction
+
+   Caveat: this document is at an early brainstorming stage, it is
+   distributed only to stimulate discussion.
+
+   The EIP header is used to carry information that IPv6 nodes can read
+   and write to implement different use cases.  EIP provides a common
+   framework which can be extended/tailored for the different use cases.
+
+   The design of the EIP header takes into account the requirement to be
+   efficient and "hardware friendly".
+
+   The benefits of having EIP as a common header and framework to
+   support multiple use cases will be discussed in this document.
+
+   The EIP header could be carried in different ways inside the IPv6
+   Header: 1) EIP Option for Hop-by-Hop Extension Header; 2) EIP TLV for
+   Segment Routing Header At the end of the analysis/design phase either
+   only one of the different mechanisms will be selected or more than
+   one will be specified, to be used depending on the scenario.
+
+2.  Benefits of a common EIP header for multiple use cases.
+
+   There are reasons why it is beneficial to define a common EIP header
+   that has multiple use cases.  The EIP header will carry different EIP
+   Information Elements that are defined to support the different use
+   cases.
+
+   1) The number of available Option Types in HBH header is limited,
+   likewise the number of available TLVs in the Segment Routing Header
+   (SRH) is limited.  Defining multiple Option Types or SRH TLVs for
+   multiple use case is not scalable and puts pressure on the allocation
+   of such codepoints.
+
+   2) The definition and standardization of specific EIP Information
+   Elements for the different use cases is much simpler, rather than
+   requiring the definition of a new Option Type or SRH TLVs.
+
+   3) Different use cases may share the EIP Information Elements.
+
+   4) Efficient and Hardware Friendly mechanisms can be defined when the
+   different EIP Information Elements are carried inside the same EIP
+   header.
+
+3.  Definition of EIP Option for HBH EH
+
+   The EIP header can be carried as an Option in the Hop by Hop
+   Extension Header, as shown in the following figure.
+
+                                      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+                                      | Option type   |Opt Data Len=xx|
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |   EIP Information Elements (variable in number and length)    |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                         ......                                |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                         ......                                |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+   Option type
+
+      +-+-+-+-+-+-+-+-+
+      |0|0|1|EIP code |
+      +-+-+-+-+-+-+-+-+
+
+   First 3 bits in Option type field:
+
+   *  0 0 Skip if not implemented
+
+   *  1 Content might change at every hop
+
+   (eventually) EIP code needs to be allocated by IANA for the time
+   being we use 11110, so overall the Option Type for EIP is
+
+   0x3E 001 11110 RFC3692-style Experiment
+
+   NB the current IANA allocation for Option Types starting with 001 is
+   (see https://www.iana.org/assignments/ipv6-parameters/
+   ipv6-parameters.xhtml)
+
+   32 possible Option Types starting with 001 2 allocated by RFCs 2
+   temporary allocated by Internet Drafts 1 allocated for RFC3692-style
+   Experiment 27 not allocated
+
+   Opt Data Len is the lenght in bytes of the rest of the EIP Option
+
+   Within the EIP Option, we have a LTV structure:
+
+     EIP-LTV a code that is specific of each EIP LTV
+     LTV Len is the lenght in bytes of the rest of the LTV
+
+4.  Definition of EIP TLV for SRH
+
+   The EIP header can be carried as a TLV in the Segment Routing Header.
+   A generic TLV in the SRH is defined as follows.
+
+       0                   1
+       0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-----------------------
+      |     Type      |    Length     | Variable-length data
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-----------------------
+
+   First bit in type field: 1 - Content might change at every hop
+
+   type code needs (eventually) to be allocated by IANA for the time
+   being we use 252 for the EIP TLV.  This is part of the experimental
+   range
+
+   252-254 Experimentation and Test [RFC8754]
+
+   NB current IANA allocation for Types starting with 1 is (see
+   https://www.iana.org/assignments/ipv6-parameters/ipv6-
+   parameters.xhtml#segment-routing-header-tlvs)
+
+   128-251 Unassigned
+
+   252-254 Experimentation and Test [RFC8754]
+
+   255 Reserved [RFC8754]
+
+   127 possible Option Types starting with 001
+
+   1 Reserved
+
+   3 allocated for Experimentation and Test
+
+   123 not allocated
+
+   The EIP TLV for SRH will carry a set of EIP Information Elements as
+   shown hereafter.
+
+       0                   1                   2                   3
+       0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+                                      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+                                      |1|   EIP       |    Length     |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |   EIP Information Elements (variable in number and length)    |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                         ......                                |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                         ......                                |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+5.  Generic format for EIP Information Elements
+
+   EIP Information Elements are used to carry the information needed by
+   the different use cases.  The same Information Element can be reused
+   across multiple use cases.
+
+   An fundamental requirement for EIP is to be "Extensible", therefore
+   we need to have a potentially large number of different Information
+   Elements.  On the other hand, we may need to be efficient, limiting
+   the overhead in bytes for carrying a given information.  In order to
+   have the possibility to find the optimal trade-off between these
+   contrasting requirements, the Codes or "Tags" for the Information
+   Elements will be variable in length.
+
+   In order to support the variability in the size of the Code of the
+   Information Element, we use an LTV (Length-Tag-Value) approach
+   instead of TLVs (Tag-Length-Value).
+
+   We are currently considering two approaches for the structure of the
+   EIP Information Elements or EIP LTVs
+
+5.1.  Proposed approach #1 for EIP LTVs.
+
+   In this approach, we have one byte LTV Data Length field.  The LTV
+   Data Len is in octets (up to 255 bytes for the LTV Data Length).
+
+       0                   1                   2                   3
+       0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |LTV Data Len=xx|0| EIP-TLV code|       LTV content             |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |          LTV content (optional, variable lenght)              |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+       0                   1                   2                   3
+       0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |LTV Data Len=xx|1|  EIP extended TLV code      | LTV content   |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |          LTV content (optional, variable lenght)              |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+   In this approach, we can have 128 codes of one byte and 32768 codes
+   of 2 bytes.
+
+5.2.  Proposed approach #2 for EIP LTVs.
+
+   In this second approach, the first two bits of the Len field can
+   differentiate the code length, and the remaining 6 bits will specify
+   the length of the optional part of the LTV content in 32 bits units
+   (4-octets units).  The LTV Data length can be up to 63x4=252 bytes
+   (covering the optional part).
+
+   Note that when the Data Len is 0, the optional part of the LTV
+   content is not present, and the Information Element is made only of 4
+   bytes (i.e. one row in the figures below).
+
+       0                   1                   2                   3
+       0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |0 1| Data Len  | EIP-LTV code  |        LTV content            |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |          LTV content (optional, variable lenght)              |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+       0                   1                   2                   3
+       0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |1 0| Data Len  |    EIP extended LTV code      | LTV content   |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |          LTV content (optional, variable lenght)              |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+       0                   1                   2                   3
+       0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |1 1| Data Len  |       EIP double-extended LTV code            |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |          LTV content (optional, variable lenght)              |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+   In this approach, we can have 256 codes of one byte, 65536 codes of 2
+   bytes and 2^24 codes of 3 bytes.
+
+5.3.  Decision on the approach for EIP LTVs
+
+   The selected approach is the #2, because it is more flexible and it
+   supports a much higher number of Information Elements Codes.
+
+6.  Definition of EIP Information Elements (a.k.a.  EIP LTVs)
+
+6.1.  HMAC LTV
+
+   Alignment requirement: 8n
+
+   The keyed Hashed Message Authentication Code (HMAC) LTV is OPTIONAL
+   and has the following format:
+
+       0                   1                   2                   3
+       0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |0 1|  Length   |    EIP extended LTV code      |  RESERVED     |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                      HMAC Key ID (4 octets)                   |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                                                              //
+      |                      HMAC (variable)                         //
+      |                                                              //
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+   EIP extended TLV code: HMAC = TBA
+
+   Length: The length of the variable-length data in bytes.
+
+   RESERVED: 8 bits.  MUST be 0 on transmission.
+
+   HMAC Key ID: A 4-octet opaque number that uniquely identifies the
+   pre-shared key and algorithm used to generate the HMAC.
+
+   HMAC: Keyed HMAC, in multiples of 8 octets, at most 32 octets.
+
+6.2.  Timestamps LTV:
+
+   OLD APPROACH (deprecated)
+
+       0                   1                   2                   3
+       0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |0|EIP-TLV code | TLV Data Len  |  Timestamps TLV Parameters    |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |           Timestamps TLV content (variable lenght)            |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+   NEW APPROACH
+
+       0                   1                   2                   3
+       0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |0 0| Data Len  | EIP-LTV code  |  Timestamps TLV Parameters    |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |           Timestamps TLV content (variable lenght)            |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+   EIP-LTV code: Timestamps = TBA
+
+   Timestamps TLV Parameters
+
+       0                   1
+       0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |  Timestamps TLV Parameters    |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+       0                   1
+       0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |    Type       | Parameters    |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+   Type : it further characterizes the format and the content of
+   Timestamps
+
+   Timestamp Type: Basic = 1
+
+       0                   1
+       0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |    Type=1     |LEN|Format |RES|
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+   LEN: the lenght of each timestamp
+
+   00 : 1 byte
+   01 : 2 bytes
+   10 : 4 bytes
+   11 : 8 bytes
+
+   Format: indicates the format of the timestamp
+
+   0001 :   1 ns
+   0010 :  10 ns
+   0011 : 100 ns
+   0100 :   1 us
+   0101 :  10 us
+   0110 : 100 us
+   0111 :   1 ms
+   1000 : NTP (only for 8 bytes)
+   1001 : Linux epoch (only for 8 bytes)
+
+   RES: Reserved, set to 0 0
+
+   Example of a Timestamp TLV of type basic, that carries 8 timestamps
+   of length 2 bytes, each one representing a time granularity of 10 us.
+
+       0                   1                   2                   3
+       0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+                                      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+                                      |0|0|1|   EIP   |Opt Data Len=20|
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |0 0| Len=4     |  Timestamps   |    Type=1     |0 1|0 1 0 1|0 0|
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |               1               |               2               |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |               3               |               4               |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |               5               |               6               |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |               7               |               8               |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+   NB using this granularity (10 us) and timestamp size (2 bytes),
+   assuming that all node clocks are synchronized with a maximum error E
+   [ms] it is possible to correctly evaluate hop-by-hop delays up to
+   (655-E) [ms]
+
+   The entire timestamp will be reconstructed at last node using system
+   time and subtracting intermediate timestamps.
+
+6.3.  Processing Accelerator LTV
+
+   The purpose of this LTV is to identify a portion of the EIP Header
+   that has a fixed pre-known format so that it can be processed in a
+   more efficient way, rather than proceeding with a "sequential"
+   parsing.  This is can be used for parallel hardware processing, but
+   also software processing can be optimized.  For example, a pre-known
+   sequence of LTVs following the Processing Accelerator LTV can be
+   processed in parallel.  The Processing Accelerator LTV can be used to
+   know in advance the size and type of some fields of the following
+   LTVs in order to speed up the processing.
+
+       0                   1                   2                   3
+       0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |0 0|  Len = 0  | Proc. Accel.  | Processing Acceleration ID    |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+   Proc.  Accel. : EIP-LTV code, To Be Assigned
+
+   The Processing Acceleration ID is an opaque identifier, its
+   definition is domain-specific.
+
+6.4.  Compact Path Tracing (CPT) LTV
+
+   This LTV is a porting of draft-filsfils-spring-path-tracing-00 into
+   the EIP framework.
+
+       0                   1                   2                   3
+       0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |0 0|  Length   |         Compact PT            |Type |  RES    |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                                                               |
+      ~                          MCD  Stack                           ~
+      |                                                               |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+   Compact PT : EIP extended LTV code, To Be Assigned
+
+   Type : 3 bits, specifies the content of the CPT LTV including the
+   format of the MCD element.
+
+   RES: Reserved, set to 00000
+
+   Ultra Compact (Type = 000) MCD 24 Bits (3 bytes)
+   Timestamp (8 bit) | Interface ID (12 bit) | Load (4 bit)
+
+   Compact (Type = 001) MCD 32 Bits (4 bytes) Timestamp (10 bit) |
+   Interface ID (16 bit) | Load (4 bit) | Timeshift (2 bit)
+
+   The MCD Stack has variable size. [draft-path-tracing] recommends 36
+   octets for a MCD of 3 bytes (12 MCDs).
+
+   In our case, taking into account the alignment requirements, we have
+   the following recommendation.
+
+   When MCD is 3 bytes, we recommend 13 MCDs for a total of 39 bytes.
+   When MCD is 4 bytes, we recommend an even number of MCD, for example
+   10 for a total of 40 bytes or 12 for a total of 48 bytes.
+
+6.4.1.  CPT Authenticated mode
+
+       0                   1                   2                   3
+       0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |0 0| Data Len  |         Compact PT            |Type |  RES    |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                                                               |
+      ~                          MCD  Stack                           ~
+      |                                                               |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                                                               |
+      ~                             HMAC                              ~
+      |                                                               |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+   In the authenticated mode, an HMAC is appended at the end of the MCD
+   Stack.  The size of the HMAC is a multiple of 8 octects.
+
+   Each intermediate node calculates the HMAC for the whole CPT LTV,
+   including the HMAC field.  The newly calculated HMAC then overwrites
+   the previous node's HMAC.  The first node will just use an HMAC field
+   set to all zeros.  An identifier for every single node is not needed,
+   because it can be derived from the MCD Stack.  The destination node
+   can reconstruct the different HMAC fields at heach hop to check if
+   the final HMAC is consistent.
+
+   [draft-path-tracing] draft-filsfils-spring-path-tracing-00
+
+7.  Conventions and Definitions
+
+   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+   "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and
+   "OPTIONAL" in this document are to be interpreted as described in
+   BCP 14 [RFC2119] [RFC8174] when, and only when, they appear in all
+   capitals, as shown here.
+
+8.  Security Considerations
+
+   TODO Security
+
+9.  IANA Considerations
+
+   This document has no IANA actions.
+
+10.  Normative References
+
+   [RFC2119]  Bradner, S., "Key words for use in RFCs to Indicate
+              Requirement Levels", BCP 14, RFC 2119,
+              DOI 10.17487/RFC2119, March 1997,
+              <https://www.rfc-editor.org/rfc/rfc2119>.
+
+   [RFC8174]  Leiba, B., "Ambiguity of Uppercase vs Lowercase in RFC
+              2119 Key Words", BCP 14, RFC 8174, DOI 10.17487/RFC8174,
+              May 2017, <https://www.rfc-editor.org/rfc/rfc8174>.
+
+Acknowledgments
+
+   TODO acknowledge.
+
+Authors' Addresses
+
+   Stefano Salsano
+   Univ. of Rome Tor Vergata / CNIT
+   Email: stefano.salsano@uniroma2.it
+
+
+   Hesham ElBakoury
+   Consultant
+   Email: helbakoury@gmail.com
