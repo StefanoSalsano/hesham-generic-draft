@@ -1,6 +1,6 @@
 ---
-title: "Extensible In-band Processing Headers Definitions"
-abbrev: "EIP Headers"
+title: "New title of the draft"
+abbrev: "new draft"
 category: info
 
 docname: draft-hesham-generic-latest
