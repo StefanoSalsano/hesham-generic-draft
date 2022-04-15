@@ -13,6 +13,13 @@ This is the working area for the individual Internet-Draft, "Title of the draft"
 * [Compare Editor's Copy to Individual Draft](https://StefanoSalsano.github.io/hesham-generic-draft/#go.draft-hesham-generic.diff)
 -->
 
+[Background information about writing internet drafts in markdown](https://github.com/danyork/writing-internet-drafts-in-markdown)
+
+[More information about kramdowm-rfc](https://github.com/cabo/kramdown-rfc)
+
+[Markdown syntax](https://daringfireball.net/projects/markdown/syntax)
+
+<!-- 
 ## Contributing
 
 See the
@@ -21,7 +28,6 @@ See the
 Contributions can be made by creating pull requests.
 The GitHub interface supports creating pull requests using the Edit (✏) button.
 
-<!-- 
 ## Command Line Usage
 
 Formatted text and HTML versions of the draft can be built using `make`.
