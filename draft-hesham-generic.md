@@ -3,7 +3,7 @@ title: "Extensible In-band Processing Headers Definitions"
 abbrev: "EIP Headers"
 category: info
 
-docname: draft-eip-headers-definitions-latest
+docname: draft-hesham-generic-latest
 ipr: trust200902
 area: AREA
 workgroup: SIG on EIP
